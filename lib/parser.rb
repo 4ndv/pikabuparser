@@ -53,12 +53,11 @@ class Parser
     # Теги
     post[:tags] = doc.css('.story__tag').map { |i| i.content.to_s.strip }
     # Счетчики
-    post[:counters] = {}
-    post[:counters][:facebook] = doc.at_css('.b-social-button_type_facebook > .b-social-button__counter').content.to_s.to_i
-    post[:counters][:vk] = doc.at_css('.b-social-button_type_vk > .b-social-button__counter').content.to_s.to_i
-    post[:counters][:save] = doc.at_css('.b-social-button_type_save')['data-count'].to_s.to_i
+    post[:counter_facebook] = doc.at_css('.b-social-button_type_facebook > .b-social-button__counter').content.to_s.to_i
+    post[:counter_vk] = doc.at_css('.b-social-button_type_vk > .b-social-button__counter').content.to_s.to_i
+    post[:counter_save] = doc.at_css('.b-social-button_type_save')['data-count'].to_s.to_i
 
-    puts JSON.pretty_generate post
+    puts "Parsed #{post[:id]}: #{post[:title]}"
 
     post
   end
