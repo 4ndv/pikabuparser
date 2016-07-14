@@ -17,7 +17,7 @@ class Parser
 
     doc.encoding = 'utf-8'
 
-    return false if html.force_encoding("utf-8").include? '404.'
+    return false if html.encode(Encoding::UTF_8).include? '404. Упс, такой страницы у нас нет'
 
     # Отбрасываем рекламные посты
     return false if doc.at_css('.story__sponsor')
