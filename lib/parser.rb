@@ -19,6 +19,9 @@ class Parser
 
     return false if html.force_encoding("utf-8").include? '404.'
 
+    # Отбрасываем рекламные посты
+    return false if doc.at_css('.story__sponsor')
+
     post = {}
 
     # ID
@@ -57,17 +60,19 @@ class Parser
     post[:counter_vk] = doc.at_css('.b-social-button_type_vk > .b-social-button__counter').content.to_s.to_i
     post[:counter_save] = doc.at_css('.b-social-button_type_save')['data-count'].to_s.to_i
 
-    puts "Parsed #{post[:id]}: #{post[:title]}"
+    puts "Fetched #{post[:id]}: #{post[:title]}"
 
     post
   end
 
   def range from, to
+    remain = to.to_i - from.to_i
     posts = []
     (from..to).to_a.peach(16) do |i|
       begin
         item = single(i)
         posts.push(item) if item
+        puts "Remain: #{remain -= 1}"
       rescue
         raise "Error in #{i}"
       end
