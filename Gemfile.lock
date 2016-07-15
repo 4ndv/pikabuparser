@@ -5,15 +5,17 @@ GEM
     nokogiri (1.6.8)
       mini_portile2 (~> 2.1.0)
       pkg-config (~> 1.1.7)
-    peach (0.5.1)
+    parallel (1.9.0)
     pkg-config (1.1.7)
+    ruby-progressbar (1.8.1)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
   nokogiri
-  peach
+  parallel
+  ruby-progressbar
 
 BUNDLED WITH
    1.12.5

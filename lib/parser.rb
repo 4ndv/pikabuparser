@@ -1,7 +1,17 @@
 require 'nokogiri'
-require 'peach'
+require 'parallel'
 require 'open-uri'
 require 'json'
+
+class String
+  def string_between_markers marker1, marker2
+    self[/#{Regexp.escape(marker1)}(.*?)#{Regexp.escape(marker2)}/m, 1]
+  end
+
+  def string_between_markers_with_markers marker1, marker2
+    marker1 + self[/#{Regexp.escape(marker1)}(.*?)#{Regexp.escape(marker2)}/m, 1] + marker2
+  end
+end
 
 class Parser
   def to_boolean str
@@ -11,16 +21,17 @@ class Parser
   def single id
     html = open("http://pikabu.ru/story/_#{id}").read
 
-    doc = Nokogiri::HTML(html) do |config|
+    return false if html.encode(Encoding::UTF_8).include? '404. Упс, такой страницы у нас нет'
+    return false if html.encode(Encoding::UTF_8).include? '<i class="story__pin-o"></i>'
+    return false if html.encode(Encoding::UTF_8).include? '<i class="story__pin"></i>'
+
+    html2 = html.string_between_markers_with_markers('<!--story_', '<!--- social segment') + '-->'
+
+    doc = Nokogiri::HTML(html2) do |config|
       config.options = Nokogiri::XML::ParseOptions::NOERROR | Nokogiri::XML::ParseOptions::NONET
     end
 
     doc.encoding = 'utf-8'
-
-    return false if html.encode(Encoding::UTF_8).include? '404. Упс, такой страницы у нас нет'
-
-    # Отбрасываем рекламные посты
-    return false if doc.at_css('.story__sponsor')
 
     post = {}
 
@@ -31,8 +42,9 @@ class Parser
     # Имя автора
     post[:author] = doc.at_css('.story__author').content
     # Сообщество
-    post[:community] = nil
-    post[:community] = doc.at_css('.b-community-info').at_css('a')['href'].to_s.sub('/community/', '') if doc.at_css('.b-community-info')
+    # post[:community] = doc.at_css('.b-community-info').at_css('a')['href'].to_s.sub('/community/', '') if doc.at_css('.b-community-info')
+    post[:community] = doc.at_css('.story__header-additional-wrapper').xpath('//a[starts-with(@href, "/community/")]/@href').to_s.sub('/community/', '')
+    post[:community] = nil if post[:community] == ''
     # Дата добавления
     post[:date] = doc.at_css('.story__date')['title'].to_s.to_i
     # Тип поста
@@ -60,19 +72,18 @@ class Parser
     post[:counter_vk] = doc.at_css('.b-social-button_type_vk > .b-social-button__counter').content.to_s.to_i
     post[:counter_save] = doc.at_css('.b-social-button_type_save')['data-count'].to_s.to_i
 
-    puts "Fetched #{post[:id]}: #{post[:title]}"
-
     post
   end
 
   def range from, to
-    remain = to.to_i - from.to_i
     posts = []
-    (from..to).to_a.peach(16) do |i|
+    Parallel.each((from..to), in_threads: 16, progress: ' Fetching...') do |i|
       begin
         item = single(i)
-        posts.push(item) if item
-        puts "Remain: #{remain -= 1}"
+        if item
+          puts "[THREAD #{Parallel.worker_number}] Fetched #{item[:id]}: #{item[:title]}"
+          posts.push(item)
+        end
       rescue
         raise "Error in #{i}"
       end

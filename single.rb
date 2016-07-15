@@ -2,4 +2,4 @@ require_relative 'lib/parser'
 
 parser = Parser.new
 
-parser.single ARGV[0]
+puts parser.single ARGV[0]
